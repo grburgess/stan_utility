@@ -1,4 +1,15 @@
 from setuptools import setup
+import os
+
+
+
+stan_cache = os.path.expanduser('~/.stan_cache')
+
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
 
 setup(
 
@@ -22,3 +33,6 @@ setup(
         'pandas'
     ],
 )
+
+
+ensure_dir(stan_cache)
