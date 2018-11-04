@@ -2,7 +2,11 @@ import pystan
 import pickle
 import numpy
 import h5py
+import os
 
+
+
+from stan_utility.file_utils import get_path_of_cache
 
 def check_div(fit, quiet=False):
     """Check transitions that ended with a divergence"""
@@ -200,9 +204,9 @@ def compile_model(filename, model_name=None, **kwargs):
         model_code = f.read()
         code_hash = md5(model_code.encode('ascii')).hexdigest()
         if model_name is None:
-            cache_fn = 'cached-model-{}.pkl'.format(code_hash)
+            cache_fn = os.path.join(get_path_of_cache() ,'cached-model-{}.pkl'.format(code_hash))
         else:
-            cache_fn = 'cached-{}-{}.pkl'.format(model_name, code_hash)
+            cache_fn = os.path.join(get_path_of_cache(),'cached-{}-{}.pkl'.format(model_name, code_hash))
         try:
             sm = pickle.load(open(cache_fn, 'rb'))
         except:
