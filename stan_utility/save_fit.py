@@ -9,13 +9,23 @@ def stanfit_to_hdf5(fit, file_name):
     :param fit: Stan fit object to save
     :param file_name: file to save the HDF5 data
     """
-    extract = fit.extract()
+    extract = fit.extract(permuted=False, inc_warmup=False)
 
     with h5py.File(file_name, 'w') as f:
 
+        params_grp = f.create_group('parameters')
+
         for key in extract.keys():
 
-            f.create_dataset(key, data=extract[key], compression='lzf')
+            params_grp.create_dataset(key, data=extract[key], compression='lzf')
+
+        sampler_grp = f.create_group('sampler')
+
+        for k, v in fit.get_sampler_params(inc_warmup=False).items():
+
+            new_key = k.replace('__', '')
+
+            sampler_grp.create_dataset(new_key, data=v, compression='lzf')
 
 
 class StanSavedFit(object):
@@ -32,7 +42,12 @@ class StanSavedFit(object):
 
         with h5py.File(file_name, 'r') as f:
 
-            for key in f.keys():
+            # attach the parameters
+            # as members of the class
+            
+            p = f['parameters']
+
+            for key in p.keys():
 
                 v = f[key].value
 
@@ -47,6 +62,17 @@ class StanSavedFit(object):
 
                 self._param_dims.append(tmp)
 
+        self._file_name = file_name
+
+
+    # @property
+    # def divergent_transitions(self):
+        
+    #     with h5py.File(self._file_name, 'r') as f:
+
+            
+        
+
     def display(self):
         """
         Display the properties of the stan fit parameters
@@ -57,6 +83,5 @@ class StanSavedFit(object):
         df = pd.DataFrame(out)
 
         # put in display from ipython
-        
+
         return df
- 
