@@ -9,7 +9,7 @@ def stanfit_to_hdf5(fit, file_name):
     :param fit: Stan fit object to save
     :param file_name: file to save the HDF5 data
     """
-    extract = fit.extract(permuted=False, inc_warmup=False)
+    extract = fit.extract()
 
     with h5py.File(file_name, 'w') as f:
 
@@ -19,13 +19,16 @@ def stanfit_to_hdf5(fit, file_name):
 
             params_grp.create_dataset(key, data=extract[key], compression='lzf')
 
-        sampler_grp = f.create_group('sampler')
 
-        for k, v in fit.get_sampler_params(inc_warmup=False).items():
+        # TODO: Make this work!
+            
+        # sampler_grp = f.create_group('sampler')
 
-            new_key = k.replace('__', '')
+        # for k, v in fit.get_sampler_params(inc_warmup=False).items():
 
-            sampler_grp.create_dataset(new_key, data=v, compression='lzf')
+        #     new_key = k.replace('__', '')
+
+        #     sampler_grp.create_dataset(new_key, data=v, compression='lzf')
 
 
 class StanSavedFit(object):
@@ -49,16 +52,17 @@ class StanSavedFit(object):
 
             for key in p.keys():
 
-                v = f[key].value
+                v = p[key].value
 
-                setattr(self, k, v)
+                setattr(self, key, v)
 
-                self._param_names.append(k)
+                self._param_names.append(key)
                 tmp = '('
                 for n in v.shape:
-                    tmp += '%d,'
+                    tmp += '%d,'%n
 
-                tmp[-1] = ')'
+                
+                tmp += ')'
 
                 self._param_dims.append(tmp)
 

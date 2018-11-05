@@ -1,14 +1,9 @@
-from save_fit import stanfit_to_hdf5, StanSavedFit
-import stan_utility
-from stan_utility import compile_model, check_all_diagnostics
-
+from stan_utility.utils import compile_model, check_all_diagnostics
+from stan_utility.save_fit import stanfit_to_hdf5, StanSavedFit
 
 
 __all__ = ['stanfit_to_hdf5',
            'StanSavedFit',
-           'stan_utility',
            'compile_model',
            'check_all_diagnostics'
-
-
 ]
