@@ -6,11 +6,15 @@ import os
 stan_cache = os.path.expanduser('~/.stan_cache')
 
 def ensure_dir(file_path):
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
+    if not os.path.exists(file_path):
+
+        print('Creating %s'% file_path)
+        
+        os.makedirs(file_path)
 
 
+
+        
 setup(
 
     name="stan_utility",
@@ -33,6 +37,7 @@ setup(
         'pandas'
     ],
 )
+
 
 
 ensure_dir(stan_cache)
