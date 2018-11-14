@@ -210,7 +210,7 @@ def compile_model(filename, model_name=None, **kwargs):
         try:
             sm = pickle.load(open(cache_fn, 'rb'))
         except:
-            sm = pystan.StanModel(model_code=model_code, **kwargs)
+            sm = pystan.StanModel(model_code=model_code, model_name=model_name, **kwargs)
             with open(cache_fn, 'wb') as f:
                 pickle.dump(sm, f)
         else:
