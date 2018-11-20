@@ -216,3 +216,40 @@ def compile_model(filename, model_name=None, **kwargs):
         else:
             print("Using cached StanModel")
         return sm
+
+    
+def fast_extract(fit, spec):
+    """
+    Faster extraction of generated quantities from Stan than using StanFit4Model.extract().
+    Unfortunately it requires specifying the order and shape of *all* params.
+    
+    Based on discussion/temporary solution here:
+    https://github.com/stan-dev/pystan/issues/462
+
+    :param fit: pystan fit object to extract from.
+    :param spec: a dict of parameter keys and shape pairs
+    e.g. spec = {'alpha' : 10, 'beta' : (100, 100), 'gamma' : (10, 100, 200)} etc...
+
+    :returns: dict of params acessed by key (as with StanFit4Model.extract())
+    """
+
+    all_output  = numpy.array([float(i) for i in fit.sim['samples'][0].chains.values()][:-1])
+
+    organised_output = {}
+    index = 0
+
+    # run through spec
+    for key, shape in spec.items():
+    
+        # take the required chunk and reshape
+        n = numpy.prod(shape)
+        tmp = all_output[index:index+n]
+        tmp = tmp.reshape(shape)
+
+        # assign to key
+        organised_output[key] = tmp
+        index += n 
+
+    return organised_output 
+
+
