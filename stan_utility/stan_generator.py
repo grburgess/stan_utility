@@ -72,8 +72,14 @@ class DataBlock(StanBlock):
 
             size = self._data_size
 
-        self._code_string += "  %s[%s] %s;\n" %(stan_type, size, name)
+        if stan_type == 'vector':
+            
+            self._code_string += "  %s[%s] %s;\n" %(stan_type, size, name)
 
+        elif stan_type == 'int':
+
+            self._code_string += "  %s %s[%s];\n" %(stan_type, name, size)
+            
     def add_data(self, name, stan_type='real'):
 
 
@@ -191,15 +197,17 @@ class StanGenerator(object):
 
             self._blocks['data'].add_vector_data(name)
 
-    def add_vector_data(self, size='M', *data_names):
+            
+    def add_vector_data(self, size='M', stan_type='vector', *data_names):
         """
         add vector data that is of size size
         """
 
         for name in data_names:
 
-            self._blocks['data'].add_vector_data(name, size=size)
+            self._blocks['data'].add_vector_data(name, size=size, stan_type=stan_type)
 
+            
     def add_data(self, stan_type='real', *data_names):
         
         for name in data_names:
