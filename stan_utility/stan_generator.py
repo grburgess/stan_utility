@@ -118,14 +118,14 @@ class ParametersBlock(StanBlock):
                 bounds += 'upper=%s' % upper_bound
 
             else:
-                bounds.replace(',','')
+                bounds=bounds.replace(',','')
 
             bounds+='>'
 
         return bounds
         
         
-    def add_vector_parameter(self, name, size=None, lower_bound=None, upper_bound=None, stan_type='vector'):
+    def add_vector_parameters(self, name, size=None, lower_bound=None, upper_bound=None, stan_type='vector'):
 
         if size is None:
 
@@ -208,14 +208,14 @@ class StanGenerator(object):
             self._blocks['data'].add_vector_data(name, size=size, stan_type=stan_type)
 
             
-    def add_data(self, stan_type='real', *data_names):
+    def add_data(self,  *data_names, stan_type='real'):
         
         for name in data_names:
 
             self._blocks['data'].add_data(name, stan_type=stan_type)
 
 
-    def add_standard_vector_parameters(self, lower_bound=None, upper_bound=None, *parameters_names):
+    def add_standard_vector_parameters(self,*parameters_names, lower_bound=None, upper_bound=None):
         """
         add vector parameters that is the size of the standard parameters size
         """
@@ -224,7 +224,7 @@ class StanGenerator(object):
 
             self._blocks['parameters'].add_vector_parameters(name, lower_bound=lower_bound, upper_bound=upper_bound)
 
-    def add_vector_parameters(self, size='M', lower_bound=None, upper_bound=None, *parameters_names):
+    def add_vector_parameters(self,*parameters_names, size='M', lower_bound=None, upper_bound=None):
         """
         add vector parameters that is of size size
         """
@@ -233,7 +233,7 @@ class StanGenerator(object):
 
             self._blocks['parameters'].add_vector_parameters(name, size=size, lower_bound=lower_bound, upper_bound=upper_bound)
 
-    def add_parameters(self, stan_type='real', lower_bound=None, upper_bound=None, *parameters_names):
+    def add_parameters(self,*parameters_names, stan_type='real', lower_bound=None, upper_bound=None):
         
         for name in parameters_names:
 
@@ -254,6 +254,12 @@ class StanGenerator(object):
             f.write(output_code)
             
 
+    @property
+    def blocks(self):
+
+        return self._blocks
+
+            
     @property
     def data(self):
 
