@@ -15,7 +15,7 @@ class StanBlock(object):
         """
         add include files into the block.
         """
-        self._code_string +='#include %s;\n'
+        self._code_string +='#include %s;\n'%include_file
 
 
     def insert_code(self, code):
