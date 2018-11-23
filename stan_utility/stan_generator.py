@@ -10,7 +10,10 @@ class StanBlock(object):
         self._code_string = '%s {\n' % block_name
 
         self._generated = False
-        
+
+    def add_include(self, include_file):
+        self._code_string +='#include %s;\n'
+    
     def clean(self):
 
         self._code_string = self._code_string[:-4]
@@ -67,11 +70,11 @@ class DataBlock(StanBlock):
         self._code_string += "  %s %s;\n" %(stan_type, name)
 
 
-class TransDataBlock(StanBlock):
+class TransDataBlock(DataBlock):
 
     def __init__(self):
 
-        super(TransDataBlock, self).__init__(block_name = 'transformed data')
+        super(DataBlock, self).__init__(block_name = 'transformed data')
 
         
 class ParametersBlock(StanBlock):
@@ -123,12 +126,13 @@ class ParametersBlock(StanBlock):
         self._code_string += "  %s%s %s;\n" %(stan_type, bounds, name)
 
 
-class TransParametersBlock(StanBlock):
+class TransParametersBlock(ParametersBlock):
 
     def __init__(self):
 
-        super(TransParametersBlock, self).__init__(block_name = 'transformed parameters')
+        super(ParametersBlock, self).__init__(block_name = 'transformed parameters')
 
+    
     
 
 class ModelBlock(StanBlock):
@@ -161,7 +165,7 @@ class StanGenerator(object):
         self._blocks = collections.OrderedDict(
             functions = FunctionsBlock(),
             data = DataBlock(data_size = data_size),
-            transform_data = TransDataBlock(),
+            transformed_data = TransDataBlock(),
             parameters = ParametersBlock(data_size = data_size),
             transformed_parameters = TransParametersBlock(),
             model = ModelBlock(),
@@ -230,11 +234,6 @@ class StanGenerator(object):
         with open(self._file_name, 'w') as f:
 
             f.write(output_code)
-
-        
-        
-
-
             
 
     @property
