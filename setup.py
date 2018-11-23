@@ -1,10 +1,90 @@
-from setuptools import setup
+from setuptools import setup, find_packages, Command
 import os
+import io
+import sys
+from shutil import rmtree
+
+
+# Package meta-data.
+NAME = 'stan_utility'
+DESCRIPTION = 'Helper routines for pystan based off @betanalphas stan_utility'
+URL = 'https://github.com/grburgess/stan_utility'
+EMAIL = 'jmichaelburgess@gmail.com'
+AUTHOR = 'J. Michael Burgess'
+REQUIRES_PYTHON = '>=2.7.0'
+VERSION = None
+
+REQUIRED = [        'numpy',
+                    'scipy',
+                    'h5py',
+                    'pystan',
+                    'pandas'
+]
+
+# What packages are optional?
+EXTRAS = {
+# 'fancy feature': ['django'],
+}
+
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+try:
+    with io.open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
+        long_description = '\n' + f.read()
+except FileNotFoundError:
+    long_description = DESCRIPTION
+    
+# Load the package's __version__.py module as a dictionary.
+about = {}
+if not VERSION:
+    with open(os.path.join(here, NAME, '__version__.py')) as f:
+        exec(f.read(), about)
+else:
+    about['__version__'] = VERSION
+
+
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = 'Build and publish the package.'
+    user_options = []
+
+    @staticmethod
+    def status(s):
+        """Prints things in bold."""
+        print('\033[1m{0}\033[0m'.format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.status('Removing previous builds...')
+            rmtree(os.path.join(here, 'dist'))
+        except OSError:
+            pass
+
+        self.status('Building Source and Wheel (universal) distribution...')
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+
+        self.status('Uploading the package to PyPI via Twine...')
+        os.system('twine upload dist/*')
+
+        self.status('Pushing git tags...')
+        os.system('git tag v{0}'.format(about['__version__']))
+        os.system('git push --tags')
+        
+        sys.exit()
 
 
 
+        
 stan_cache = os.path.expanduser('~/.stan_cache')
-
+        
 def ensure_dir(file_path):
     if not os.path.exists(file_path):
 
@@ -17,26 +97,24 @@ def ensure_dir(file_path):
         
 setup(
 
-    name="stan_utility",
-    packages=[
-        'stan_utility',
-    ],
-    version='v1.0a',
+    name=NAME,
+    version=about['__version__'],
+    description=DESCRIPTION,
+    long_description=long_description,
+    long_description_content_type='text/markdown',
+    author=AUTHOR,
+    author_email=EMAIL,
+    python_requires=REQUIRES_PYTHON,
+    url=URL,
+    packages=find_packages(exclude=('tests',)),
+    install_requires=REQUIRED,
+    extras_require=EXTRAS,
+    include_package_data=True,
+    
     license='BSD',
-    description='Helper routines for pystan based off @betanalphas stan_utility',
-    author='J. Michael Burgess',
-    author_email='jmichaelburgess@gmail.com',
-    #   url = 'https://github.com/grburgess/pychangcooper',
-    #   download_url='https://github.com/grburgess/pychangcooper/archive/1.1.2.tar.gz',
-
-    install_requires=[
-        'numpy',
-        'scipy',
-        'h5py',
-        'pystan',
-        'pandas'
-    ],
-)
+    cmdclass={
+        'upload': UploadCommand,},
+    )
 
 
 
