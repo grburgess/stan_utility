@@ -111,11 +111,11 @@ class ParametersBlock(StanBlock):
             bounds += '<'
 
             if lower_bound is not None:
-                bounds+='lower=%.1f,' % lower_bound
+                bounds+='lower=%s,' % lower_bound
 
             if upper_bound is not None:
 
-                bounds += 'upper=%.1f'
+                bounds += 'upper=%s' % upper_bound
 
             else:
                 bounds.replace(',','')
