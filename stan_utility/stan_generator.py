@@ -12,8 +12,17 @@ class StanBlock(object):
         self._generated = False
 
     def add_include(self, include_file):
+        """
+        add include files into the block.
+        """
         self._code_string +='#include %s;\n'
-    
+
+
+    def insert_code(self, code):
+
+        self._code_string +='\n%s\n' %code
+        
+        
     def clean(self):
 
         self._code_string = self._code_string[:-4]
@@ -43,6 +52,7 @@ class FunctionsBlock(StanBlock):
 
         super(FunctionsBlock, self).__init__(block_name = 'functions')
 
+    
 
 class DataBlock(StanBlock):
 
