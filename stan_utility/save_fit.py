@@ -11,17 +11,16 @@ def stanfit_to_hdf5(fit, file_name):
     """
     extract = fit.extract()
 
-    with h5py.File(file_name, 'w') as f:
+    with h5py.File(file_name, "w") as f:
 
-        params_grp = f.create_group('parameters')
+        params_grp = f.create_group("parameters")
 
         for key in extract.keys():
 
-            params_grp.create_dataset(key, data=extract[key], compression='lzf')
-
+            params_grp.create_dataset(key, data=extract[key], compression="lzf")
 
         # TODO: Make this work!
-            
+
         # sampler_grp = f.create_group('sampler')
 
         # for k, v in fit.get_sampler_params(inc_warmup=False).items():
@@ -32,7 +31,6 @@ def stanfit_to_hdf5(fit, file_name):
 
 
 class StanSavedFit(object):
-
     def __init__(self, file_name):
         """
         Load a Stan fit from an HDF5 file created by stanfit_to_hdf5.
@@ -43,12 +41,12 @@ class StanSavedFit(object):
         self._param_names = []
         self._param_dims = []
 
-        with h5py.File(file_name, 'r') as f:
+        with h5py.File(file_name, "r") as f:
 
             # attach the parameters
             # as members of the class
-            
-            p = f['parameters']
+
+            p = f["parameters"]
 
             for key in p.keys():
 
@@ -57,32 +55,27 @@ class StanSavedFit(object):
                 setattr(self, key, v)
 
                 self._param_names.append(key)
-                tmp = '('
+                tmp = "("
                 for n in v.shape:
-                    tmp += '%d,'%n
+                    tmp += "%d," % n
 
-                
-                tmp += ')'
+                tmp += ")"
 
                 self._param_dims.append(tmp)
 
         self._file_name = file_name
 
-
     # @property
     # def divergent_transitions(self):
-        
-    #     with h5py.File(self._file_name, 'r') as f:
 
-            
-        
+    #     with h5py.File(self._file_name, 'r') as f:
 
     def display(self):
         """
         Display the properties of the stan fit parameters
         """
 
-        out = {'parameter': self._param_names, 'dims': self._param_dims}
+        out = {"parameter": self._param_names, "dims": self._param_dims}
 
         df = pd.DataFrame(out)
 

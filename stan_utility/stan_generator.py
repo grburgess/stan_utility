@@ -1,13 +1,23 @@
 import collections
 
-_allowed_block_names = ['functions', 'data', 'transformed data', 'parameters', 'transformed parameters', 'model', 'generated quantities']
+_allowed_block_names = [
+    "functions",
+    "data",
+    "transformed data",
+    "parameters",
+    "transformed parameters",
+    "model",
+    "generated quantities",
+]
+
 
 class StanBlock(object):
-
     def __init__(self, block_name):
 
-        assert block_name in _allowed_block_names, '%s must be one of %s' ''.join(_allowed_block_names)
-        self._code_string = '%s {\n' % block_name
+        assert block_name in _allowed_block_names, "%s must be one of %s" "".join(
+            _allowed_block_names
+        )
+        self._code_string = "%s {\n" % block_name
 
         self._generated = False
 
@@ -15,303 +25,284 @@ class StanBlock(object):
         """
         add include files into the block.
         """
-        self._code_string +='#include %s\n'%include_file
-
+        self._code_string += "#include %s\n" % include_file
 
     def insert_code(self, code):
 
-        self._code_string +='\n%s\n' %code
-        
-        
+        self._code_string += "\n%s\n" % code
+
     def clean(self):
 
         self._code_string = self._code_string[:-4]
         self._generated = False
-        
-        
+
     def generate(self):
 
-
-        self._code_string += '\n}\n\n'
+        self._code_string += "\n}\n\n"
         self._generated = True
 
     @property
     def code(self):
         if self._generated:
-        
+
             return self._code_string
 
         else:
 
-            raise RuntimeError('Block is not generated')
+            raise RuntimeError("Block is not generated")
 
 
 class FunctionsBlock(StanBlock):
-
     def __init__(self):
 
-        super(FunctionsBlock, self).__init__(block_name = 'functions')
+        super(FunctionsBlock, self).__init__(block_name="functions")
 
-    
 
 class DataBlock(StanBlock):
+    def __init__(self, data_size="N"):
 
-    def __init__(self, data_size='N'):
-
-        super(DataBlock, self).__init__(block_name = 'data')
+        super(DataBlock, self).__init__(block_name="data")
 
         self._data_size = data_size
-        
-        # add on the data size
-        self._code_string +='  int %s;\n'%data_size
-        
 
-    def add_vector_data(self, name, size=None, stan_type='vector'):
+        # add on the data size
+        self._code_string += "  int %s;\n" % data_size
+
+    def add_vector_data(self, name, size=None, stan_type="vector"):
 
         if size is None:
 
             size = self._data_size
 
-        if stan_type == 'vector':
-            
-            self._code_string += "  %s[%s] %s;\n" %(stan_type, size, name)
+        if stan_type == "vector":
 
-        elif stan_type == 'int':
+            self._code_string += "  %s[%s] %s;\n" % (stan_type, size, name)
 
-            self._code_string += "  %s %s[%s];\n" %(stan_type, name, size)
-            
-    def add_data(self, name, stan_type='real'):
+        elif stan_type == "int":
 
+            self._code_string += "  %s %s[%s];\n" % (stan_type, name, size)
 
-        self._code_string += "  %s %s;\n" %(stan_type, name)
+    def add_data(self, name, stan_type="real"):
+
+        self._code_string += "  %s %s;\n" % (stan_type, name)
 
 
 class TransDataBlock(DataBlock):
-
     def __init__(self):
 
-        super(DataBlock, self).__init__(block_name = 'transformed data')
+        super(DataBlock, self).__init__(block_name="transformed data")
 
-        
+
 class ParametersBlock(StanBlock):
+    def __init__(self, data_size="N"):
 
-    def __init__(self, data_size='N'):
-
-        super(ParametersBlock, self).__init__(block_name = 'parameters')
+        super(ParametersBlock, self).__init__(block_name="parameters")
 
         self._data_size = data_size
-        
 
     @staticmethod
     def bounds_generator(upper_bound, lower_bound):
 
-        bounds = ''
+        bounds = ""
 
         if (lower_bound is not None) or (upper_bound is not None):
-            bounds += '<'
+            bounds += "<"
 
             if lower_bound is not None:
-                bounds+='lower=%s,' % lower_bound
+                bounds += "lower=%s," % lower_bound
 
             if upper_bound is not None:
 
-                bounds += 'upper=%s' % upper_bound
+                bounds += "upper=%s" % upper_bound
 
             else:
-                bounds=bounds.replace(',','')
+                bounds = bounds.replace(",", "")
 
-            bounds+='>'
+            bounds += ">"
 
         return bounds
-        
-        
-    def add_vector_parameters(self, name, size=None, lower_bound=None, upper_bound=None, stan_type='vector'):
+
+    def add_vector_parameters(
+        self, name, size=None, lower_bound=None, upper_bound=None, stan_type="vector"
+    ):
 
         if size is None:
 
             size = self._data_size
 
         bounds = ParametersBlock.bounds_generator(upper_bound, lower_bound)
-                        
-        self._code_string += "  %s%s[%s] %s;\n" %(stan_type, bounds, size, name)
 
-    def add_parameters(self, name, lower_bound=None, upper_bound=None, stan_type='real'):
+        self._code_string += "  %s%s[%s] %s;\n" % (stan_type, bounds, size, name)
+
+    def add_parameters(
+        self, name, lower_bound=None, upper_bound=None, stan_type="real"
+    ):
 
         bounds = ParametersBlock.bounds_generator(upper_bound, lower_bound)
-        
-        self._code_string += "  %s%s %s;\n" %(stan_type, bounds, name)
+
+        self._code_string += "  %s%s %s;\n" % (stan_type, bounds, name)
 
 
 class TransParametersBlock(ParametersBlock):
-
     def __init__(self):
 
-        super(ParametersBlock, self).__init__(block_name = 'transformed parameters')
+        super(ParametersBlock, self).__init__(block_name="transformed parameters")
 
-    
-    
 
 class ModelBlock(StanBlock):
-
     def __init__(self):
 
-        super(ModelBlock, self).__init__(block_name = 'model')
+        super(ModelBlock, self).__init__(block_name="model")
 
 
 class GQBlock(StanBlock):
-
     def __init__(self):
 
-        super(GQBlock, self).__init__(block_name = 'generated quantities')
+        super(GQBlock, self).__init__(block_name="generated quantities")
 
 
-
-
-        
-
-
-        
 class StanGenerator(object):
-
-    def __init__(self, model_name='model', data_size='N'):
+    def __init__(self, model_name="model", data_size="N"):
 
         self._file_name = "%s.stan" % model_name
         self._model_name = model_name
 
         self._blocks = collections.OrderedDict(
-            functions = FunctionsBlock(),
-            data = DataBlock(data_size = data_size),
-            transformed_data = TransDataBlock(),
-            parameters = ParametersBlock(data_size = data_size),
-            transformed_parameters = TransParametersBlock(),
-            model = ModelBlock(),
-            generated_quantities = GQBlock()
+            functions=FunctionsBlock(),
+            data=DataBlock(data_size=data_size),
+            transformed_data=TransDataBlock(),
+            parameters=ParametersBlock(data_size=data_size),
+            transformed_parameters=TransParametersBlock(),
+            model=ModelBlock(),
+            generated_quantities=GQBlock(),
         )
 
-    def add_standard_vector_data(self,*data_names):
+    def add_standard_vector_data(self, *data_names):
         """
         add vector data that is the size of the standard data size
         """
 
         for name in data_names:
 
-            self._blocks['data'].add_vector_data(name)
+            self._blocks["data"].add_vector_data(name)
 
-            
-    def add_vector_data(self, size='M', stan_type='vector', *data_names):
+    def add_vector_data(self, size="M", stan_type="vector", *data_names):
         """
         add vector data that is of size size
         """
 
         for name in data_names:
 
-            self._blocks['data'].add_vector_data(name, size=size, stan_type=stan_type)
+            self._blocks["data"].add_vector_data(name, size=size, stan_type=stan_type)
 
-            
-    def add_data(self,  *data_names, stan_type='real'):
-        
+    def add_data(self, *data_names, stan_type="real"):
+
         for name in data_names:
 
-            self._blocks['data'].add_data(name, stan_type=stan_type)
+            self._blocks["data"].add_data(name, stan_type=stan_type)
 
-
-    def add_standard_vector_parameters(self,*parameters_names, lower_bound=None, upper_bound=None):
+    def add_standard_vector_parameters(
+        self, *parameters_names, lower_bound=None, upper_bound=None
+    ):
         """
         add vector parameters that is the size of the standard parameters size
         """
 
         for name in parameters_names:
 
-            self._blocks['parameters'].add_vector_parameters(name, lower_bound=lower_bound, upper_bound=upper_bound)
+            self._blocks["parameters"].add_vector_parameters(
+                name, lower_bound=lower_bound, upper_bound=upper_bound
+            )
 
-    def add_vector_parameters(self,*parameters_names, size='M', lower_bound=None, upper_bound=None):
+    def add_vector_parameters(
+        self, *parameters_names, size="M", lower_bound=None, upper_bound=None
+    ):
         """
         add vector parameters that is of size size
         """
 
         for name in parameters_names:
 
-            self._blocks['parameters'].add_vector_parameters(name, size=size, lower_bound=lower_bound, upper_bound=upper_bound)
+            self._blocks["parameters"].add_vector_parameters(
+                name, size=size, lower_bound=lower_bound, upper_bound=upper_bound
+            )
 
-    def add_parameters(self,*parameters_names, stan_type='real', lower_bound=None, upper_bound=None):
-        
+    def add_parameters(
+        self, *parameters_names, stan_type="real", lower_bound=None, upper_bound=None
+    ):
+
         for name in parameters_names:
 
-            self._blocks['parameters'].add_parameters(name, stan_type=stan_type, lower_bound=lower_bound, upper_bound=upper_bound)
-
+            self._blocks["parameters"].add_parameters(
+                name,
+                stan_type=stan_type,
+                lower_bound=lower_bound,
+                upper_bound=upper_bound,
+            )
 
     def write_stan_code(self):
 
-        output_code = ''
-        for k,v in self._blocks.items():
+        output_code = ""
+        for k, v in self._blocks.items():
 
             v.generate()
-            output_code+=v.code
-            output_code +='\n'
+            output_code += v.code
+            output_code += "\n"
             v.clean()
-        with open(self._file_name, 'w') as f:
+        with open(self._file_name, "w") as f:
 
             f.write(output_code)
-            
 
     @property
     def blocks(self):
 
         return self._blocks
 
-            
     @property
     def data(self):
 
-        self._blocks['data'].generate()
-        print(self._blocks['data'].code)
-        self._blocks['data'].clean()
-
+        self._blocks["data"].generate()
+        print(self._blocks["data"].code)
+        self._blocks["data"].clean()
 
     @property
     def parameters(self):
 
-        self._blocks['parameters'].generate()
-        print(self._blocks['parameters'].code)
-        self._blocks['parameters'].clean()
+        self._blocks["parameters"].generate()
+        print(self._blocks["parameters"].code)
+        self._blocks["parameters"].clean()
 
     @property
     def functions(self):
 
-        self._blocks['functions'].generate()
-        print(self._blocks['functions'].code)
-        self._blocks['functions'].clean()
+        self._blocks["functions"].generate()
+        print(self._blocks["functions"].code)
+        self._blocks["functions"].clean()
 
     @property
     def generated_quantities(self):
 
-        self._blocks['generated_quantities'].generate()
-        print(self._blocks['generated_quantities'].code)
-        self._blocks['generated_quantities'].clean()
+        self._blocks["generated_quantities"].generate()
+        print(self._blocks["generated_quantities"].code)
+        self._blocks["generated_quantities"].clean()
 
-
-        
     @property
     def model(self):
 
-        self._blocks['model'].generate()
-        print(self._blocks['model'].code)
-        self._blocks['model'].clean()
+        self._blocks["model"].generate()
+        print(self._blocks["model"].code)
+        self._blocks["model"].clean()
 
     @property
     def transformed_data(self):
 
-        self._blocks['transformed_data'].generate()
-        print(self._blocks['transformed_data'].code)
-        self._blocks['transformed_data'].clean()
-
+        self._blocks["transformed_data"].generate()
+        print(self._blocks["transformed_data"].code)
+        self._blocks["transformed_data"].clean()
 
     @property
     def transformed_parameters(self):
 
-        self._blocks['transformed_parameters'].generate()
-        print(self._blocks['transformed_parameters'].code)
-        self._blocks['transformed_parameters'].clean()
-
-        
-    
+        self._blocks["transformed_parameters"].generate()
+        print(self._blocks["transformed_parameters"].code)
+        self._blocks["transformed_parameters"].clean()
