@@ -5,7 +5,6 @@ import os
 import hashlib
 import re
 import warnings
-import numpy as np
 import h5py
 
 from stan_utility.file_utils import get_path_of_cache
@@ -346,7 +345,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
     print("processing results ...")
     print(fit)
     print("checking results ...")
-    check_all_diagnostics(fit, 
+    check_all_diagnostics(fit,
         max_treedepth=kwargs.get('control', {}).get('max_treedepth', 10),
         quiet=False)
     la = fit.extract()
@@ -376,7 +375,13 @@ def sample_model(model, data, prefix='fitresult', **kwargs):
     return samples
 
 
-def plot_corner(samples, outprefix='fitresult', settings=dict(smooth_scale_2D=3.0)):
+def plot_corner(samples, outprefix='fitresult', **kwargs):
+    """
+    Store a simple corner plot in outprefix_corner.pdf, based on samples
+    extracted from fit.
+
+    Additional kwargs are passed to MCSamples.
+    """
     la = samples
     samples = []
     paramnames = []
@@ -385,13 +390,14 @@ def plot_corner(samples, outprefix='fitresult', settings=dict(smooth_scale_2D=3.
 
     for k in sorted(la.keys()):
         print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
-        if len(np.shape(la[k])) == 1 and k not in badlist:
+        if len(numpy.shape(la[k])) == 1 and k not in badlist:
             samples.append(la[k])
             paramnames.append(k)
-    samples = np.transpose(samples)
+    samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt
     from getdist import MCSamples, plots
-    samples_g = MCSamples(samples=samples, names=paramnames, settings=settings, label='MCMC')
+    settings = kwargs.pop('settings', dict(smooth_scale_2D=3.0))
+    samples_g = MCSamples(samples=samples, names=paramnames, settings=settings, **kwargs)
     g = plots.get_subplot_plotter(width_inch=8)
     g.settings.num_plot_contours = 3
     g.triangle_plot([samples_g], filled=False, contour_colors=plt.cm.Set1.colors);
