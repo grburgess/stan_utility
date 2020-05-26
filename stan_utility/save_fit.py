@@ -1,7 +1,6 @@
 import h5py
 import pandas as pd
 
-
 def stanfit_to_hdf5(fit, file_name):
     """
     Write the parameters from a stan fit into a simple hdf5 file 
@@ -12,12 +11,9 @@ def stanfit_to_hdf5(fit, file_name):
     extract = fit.extract()
 
     with h5py.File(file_name, "w") as f:
-
         params_grp = f.create_group("parameters")
-
         for key in extract.keys():
-
-            params_grp.create_dataset(key, data=extract[key], compression="lzf")
+            params_grp.create_dataset(key, data=extract[key], compression="gzip", shuffle=True)
 
         # TODO: Make this work!
 

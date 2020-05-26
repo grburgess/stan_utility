@@ -1,7 +1,9 @@
 import os
 import glob
+import joblib
 
 stan_cache = os.path.expanduser("~/.stan_cache")
+mem = joblib.Memory(stan_cache, verbose=False)
 
 
 def get_path_of_cache():

@@ -1,9 +1,11 @@
 import pystan
 import pickle
 import numpy
-import h5py
 import os
-
+import hashlib
+import re
+import warnings
+import h5py
 
 from stan_utility.file_utils import get_path_of_cache
 
@@ -15,8 +17,8 @@ def check_div(fit, quiet=False):
     n = sum(divergent)
     N = len(divergent)
 
-    if not quiet:
-        print(
+    if not quiet and n > 0:
+        warnings.warn(
             "{} of {} iterations ended with a divergence ({}%)".format(
                 n, N, 100 * n / N
             )
@@ -24,7 +26,7 @@ def check_div(fit, quiet=False):
 
     if n > 0:
         if not quiet:
-            print("  Try running with larger adapt_delta to remove the divergences")
+            warnings.warn("  Try running with larger adapt_delta to remove the divergences")
         else:
             return False
     else:
@@ -39,15 +41,15 @@ def check_treedepth(fit, max_treedepth=10, quiet=False):
     n = sum(1 for x in depths if x == max_treedepth)
     N = len(depths)
 
-    if not quiet:
-        print(
+    if not quiet and n > 0:
+        warnings.warn(
             (
                 "{} of {} iterations saturated the maximum tree depth of {}" + " ({}%)"
             ).format(n, N, max_treedepth, 100 * n / N)
         )
     if n > 0:
         if not quiet:
-            print(
+            warnings.warn(
                 "  Run again with max_treedepth set to a larger value to avoid saturation"
             )
         else:
@@ -69,17 +71,15 @@ def check_energy(fit, quiet=False):
         denom = numpy.var(energies)
         if numer / denom < 0.2:
             if not quiet:
-                print("Chain {}: E-BFMI = {}".format(chain_num, numer / denom))
+                warnings.warn("Chain {}: E-BFMI = {}".format(chain_num, numer / denom))
             no_warning = False
 
     if no_warning:
-        if not quiet:
-            print("E-BFMI indicated no pathological behavior")
-        else:
+        if quiet:
             return True
     else:
         if not quiet:
-            print(
+            warnings.warn(
                 "  E-BFMI below 0.2 indicates you may need to reparameterize your model"
             )
         else:
@@ -98,17 +98,15 @@ def check_n_eff(fit, quiet=False):
         ratio = n_eff / n_iter
         if ratio < 0.001:
             if not quiet:
-                print("n_eff / iter for parameter {} is {}!".format(name, ratio))
+                warnings.warn("n_eff / iter for parameter {} is {}!".format(name, ratio))
             no_warning = False
 
     if no_warning:
-        if not quiet:
-            print("n_eff / iter looks reasonable for all parameters")
-        else:
+        if quiet:
             return True
     else:
         if not quiet:
-            print(
+            warnings.warn(
                 "  n_eff / iter below 0.001 indicates that the effective sample size has likely been overestimated"
             )
         else:
@@ -128,16 +126,14 @@ def check_rhat(fit, quiet=False):
     for rhat, name in zip(rhats, names):
         if rhat > 1.1 or isnan(rhat) or isinf(rhat):
             if not quiet:
-                print("Rhat for parameter {} is {}!".format(name, rhat))
+                warnings.warn("Rhat for parameter {} is {}!".format(name, rhat))
             no_warning = False
     if no_warning:
-        if not quiet:
-            print("Rhat looks reasonable for all parameters")
-        else:
+        if quiet:
             return True
     else:
         if not quiet:
-            print(
+            warnings.warn(
                 "  Rhat above 1.1 indicates that the chains very likely have not mixed"
             )
         else:
@@ -157,7 +153,6 @@ def check_all_diagnostics(fit, max_treedepth=10, quiet=False):
         warning_code = 0
         if not check_n_eff(fit, quiet):
             warning_code = warning_code | (1 << 0)
-            print(warning_code)
         if not check_rhat(fit, quiet):
             warning_code = warning_code | (1 << 1)
         if not check_div(fit, quiet):
@@ -173,15 +168,15 @@ def check_all_diagnostics(fit, max_treedepth=10, quiet=False):
 def parse_warning_code(warning_code):
     """Parses warning code into individual failures"""
     if warning_code & (1 << 0):
-        print("n_eff / iteration warning")
+        warnings.warn("n_eff / iteration warning")
     if warning_code & (1 << 1):
-        print("rhat warning")
+        warnings.warn("rhat warning")
     if warning_code & (1 << 2):
-        print("divergence warning")
+        warnings.warn("divergence warning")
     if warning_code & (1 << 3):
-        print("treedepth warning")
+        warnings.warn("treedepth warning")
     if warning_code & (1 << 4):
-        print("energy warning")
+        warnings.warn("energy warning")
 
 
 def _by_chain(unpermuted_extraction):
@@ -219,36 +214,80 @@ def partition_div(fit):
     div_params = dict((key, params[key][div == 1]) for key in params)
     return nondiv_params, div_params
 
+def trim_model_code(code):
+    """Strip white space, empty lines and comments from stan code."""
+    lines = code.split("\n")
+    lines = [re.sub('//.*$', '', line).strip() for line in lines]
+    lines = [line.replace('    ', ' ').replace('  ', ' ').replace('  ', ' ')
+        for line in lines if len(line) > 0]
 
-def compile_model(filename, model_name=None, **kwargs):
+    slimcode = '\n'.join(lines).strip()
+    slimbytes = slimcode.encode(encoding="ascii", errors="ignore")
+    slimcode = slimbytes.decode(encoding="ascii")
+    return slimcode
+
+def hash_model_code(code):
+    """Get a hash for stan code"""
+    slimbytes = code.encode(encoding="ascii")
+    hexcode = hashlib.md5(slimbytes).hexdigest()
+    return hexcode
+
+def compile_model(filename, model_name="anon_model", print_code=False, **kwargs):
     """This will automatically cache models - great if you're just running a
     script on the command line.
 
+    if print_code is True, gives line numbers of code compiled.
+
     See http://pystan.readthedocs.io/en/latest/avoiding_recompilation.html"""
-    from hashlib import md5
 
     with open(filename) as f:
         model_code = f.read()
-        code_hash = md5(model_code.encode("ascii")).hexdigest()
-        if model_name is None:
-            cache_fn = os.path.join(
-                get_path_of_cache(), "cached-model-{}.pkl".format(code_hash)
-            )
-        else:
-            cache_fn = os.path.join(
-                get_path_of_cache(), "cached-{}-{}.pkl".format(model_name, code_hash)
-            )
-        try:
-            sm = pickle.load(open(cache_fn, "rb"))
-        except:
-            sm = pystan.StanModel(
-                model_code=model_code, model_name=model_name, **kwargs
-            )
-            with open(cache_fn, "wb") as f:
-                pickle.dump(sm, f)
-        else:
-            print("Using cached StanModel")
+    return compile_model_code(model_code, model_name=model_name, print_code=print_code, simplify=False, **kwargs)
+
+def compile_model_code(model_code, model_name="anon_model", print_code=True, simplify=True, **kwargs):
+    """This will automatically cache models - great if you're just running a
+    script on the command line.
+
+    If print_code is True, gives line numbers of code compiled. Useful to quickly
+    find the line in error. If simplify is True, strips empty lines and comments from code.
+
+    See http://pystan.readthedocs.io/en/latest/avoiding_recompilation.html"""
+
+    simple_model_code = trim_model_code(model_code)
+    code_hash = hash_model_code(simple_model_code)
+    if model_name is None:
+        cache_fn = os.path.join(
+            get_path_of_cache(), "cached-model-{}.pkl".format(code_hash)
+        )
+    else:
+        cache_fn = os.path.join(
+            get_path_of_cache(), "cached-{}-{}.pkl".format(model_name, code_hash)
+        )
+
+    try:
+        sm = pickle.load(open(cache_fn, "rb"))
+        print("Using cached StanModel")
         return sm
+    except IOError:
+        pass
+    
+    if simplify:
+        model_code = simple_model_code
+
+    if print_code:
+        formatted_code = '\n'.join(['%3d: %s' % (i+1, line)
+            for i, line in enumerate(model_code.split("\n"))])
+        print("Compiling slimmed Stan code[%s_%s]:\n%s" % (model_name, code_hash, formatted_code))
+
+    if model_name is not None:
+        kwargs['model_name'] = model_name
+
+    sm = pystan.StanModel(model_code=model_code, **kwargs)
+
+    with open(cache_fn, "wb") as f:
+        pickle.dump(sm, f)
+
+    return sm
 
 
 def fast_extract(fit, spec):
@@ -286,3 +325,82 @@ def fast_extract(fit, spec):
         index += n
 
     return organised_output
+
+
+import stan_utility.file_utils
+@stan_utility.file_utils.mem.cache(ignore=["outprefix", "refresh"])
+def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
+    print()
+    print("Data")
+    print("----")
+    for k, v in data.items():
+        if numpy.shape(v) == ():
+            print('  %-10s: %s' % (k, v))
+        else:
+            print('  %-10s: shape %s [%s ... %s]' % (k, numpy.shape(v), numpy.min(v), numpy.max(v)))
+
+    print()
+    print("sampling from model ...")
+    fit = model.sampling(data=data, refresh=refresh, **kwargs)
+    print("processing results ...")
+    print(fit)
+    print("checking results ...")
+    check_all_diagnostics(fit,
+        max_treedepth=kwargs.get('control', {}).get('max_treedepth', 10),
+        quiet=False)
+    la = fit.extract()
+    return la
+
+def sample_model(model, data, prefix='fitresult', **kwargs):
+    """
+    Sample Stan model and write the parameters into a simple hdf5 file
+
+    :param model: Stan model to sample from
+    :param data: data to pass to model
+    :param file_name: HDF5 file name where samples will be stored
+
+    All other arguments are passed to model.sampling().
+    Result is cached.
+    """
+    samples = _sample_model(model, data, **kwargs)
+
+    file_name = prefix + 'fit.hdf5'
+
+    if file_name is not None:
+        with h5py.File(file_name, "w") as f:
+            params_grp = f.create_group("parameters")
+            for key, data in samples.items():
+                params_grp.create_dataset(key, data=data, compression="gzip", shuffle=True)
+    
+    return samples
+
+
+def plot_corner(samples, outprefix='fitresult', **kwargs):
+    """
+    Store a simple corner plot in outprefix_corner.pdf, based on samples
+    extracted from fit.
+
+    Additional kwargs are passed to MCSamples.
+    """
+    la = samples
+    samples = []
+    paramnames = []
+    badlist = ['lp__']
+    badlist += [k for k in la.keys() if 'log' in k and k.replace('log', '') in la.keys()]
+
+    for k in sorted(la.keys()):
+        print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
+        if len(numpy.shape(la[k])) == 1 and k not in badlist:
+            samples.append(la[k])
+            paramnames.append(k)
+    samples = numpy.transpose(samples)
+    import matplotlib.pyplot as plt
+    from getdist import MCSamples, plots
+    settings = kwargs.pop('settings', dict(smooth_scale_2D=3.0))
+    samples_g = MCSamples(samples=samples, names=paramnames, settings=settings, **kwargs)
+    g = plots.get_subplot_plotter(width_inch=8)
+    g.settings.num_plot_contours = 3
+    g.triangle_plot([samples_g], filled=False, contour_colors=plt.cm.Set1.colors);
+    plt.savefig(outprefix + '_corner.pdf', bbox_inches='tight')
+    plt.close()
+
