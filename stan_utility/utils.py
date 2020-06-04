@@ -384,15 +384,27 @@ def plot_corner(samples, outprefix=None, **kwargs):
 
     for k in sorted(la.keys()):
         print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
-        if len(numpy.shape(la[k])) == 2 and k not in badlist:
+        if la[k].ndim == 2 and k not in badlist:
             samples.append(la[k].data.flatten())
             paramnames.append(k)
+
+    if len(samples) == 0:
+        arrays = [k for k in sorted(la.keys()) if la[k].ndim == 3 and la[k].shape[2] <= 20 and k not in badlist]
+        if len(arrays) != 1:
+            warnings.warn("no scalar variables found")
+            return
+
+        k = arrays[0]
+        # flatten across chains and column for each variable
+        samples = numpy.rollaxis(la[k].data, 2).reshape((la[k].shape[2], -1))
+        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[2])]
+
     samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt
     from getdist import MCSamples, plots
     settings = kwargs.pop('settings', dict(smooth_scale_2D=3.0))
     samples_g = MCSamples(samples=samples, names=paramnames, settings=settings, **kwargs)
-    g = plots.get_subplot_plotter(width_inch=8)
+    g = plots.get_subplot_plotter()
     g.settings.num_plot_contours = 3
     g.triangle_plot([samples_g], filled=False, contour_colors=plt.cm.Set1.colors);
     if outprefix is not None:
