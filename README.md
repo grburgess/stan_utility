@@ -57,4 +57,11 @@ Usage for experimenting in a notebook:
 Editing the comments, adding and removing lines will not require
 recompilation of the model.
 
+Contributors
+------------
 
+Derived from Stan_utility by Michael Betancourt and Sean Talts. Extended by
+
+* @grburgess
+* @cescalara
+* @JohannesBuchner
