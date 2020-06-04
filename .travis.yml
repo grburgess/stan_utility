@@ -1,11 +1,11 @@
 language: python
 
 python:
-  - "3.6"
+  - "3.5"
   - "3.8"
 
 install:
-  - pip install coveralls cython # scipy h5py pystan pandas
+  - pip install coveralls matplotlib cython # scipy h5py pystan pandas
   - python setup.py install
 
 script:
