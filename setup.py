@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from setuptools import setup, find_packages, Command
 import os
 import io
@@ -14,11 +16,12 @@ AUTHOR = "J. Michael Burgess"
 REQUIRES_PYTHON = ">=2.7.0"
 VERSION = None
 
-REQUIRED = ["numpy", "scipy", "h5py", "pystan", "pandas"]
-
+REQUIRED = ["numpy", "scipy", "h5py", "pystan<3", "joblib", "pandas"]
+TEST_REQUIRED = ["pytest>=3", "matplotlib", "getdist"]
+SETUP_REQUIRED = ["pytest-runner", ]
 # What packages are optional?
 EXTRAS = {
-    # 'fancy feature': ['django'],
+    'plot': ['matplotlib', 'getdist'],
 }
 
 
@@ -100,8 +103,11 @@ setup(
     packages=find_packages(exclude=("tests",)),
     install_requires=REQUIRED,
     extras_require=EXTRAS,
+    setup_requires=SETUP_REQUIRED,
+    test_suite='tests',
+    tests_require=TEST_REQUIRED,
     include_package_data=True,
-    license="BSD",
+    license="GPL",
     cmdclass={"upload": UploadCommand},
 )
 
