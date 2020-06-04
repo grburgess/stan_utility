@@ -1,10 +1,12 @@
-import pystan
 import pickle
 import numpy
 import os
 import hashlib
 import re
 import warnings
+import collections
+
+import pystan
 import arviz
 
 from stan_utility.cache import get_path as get_path_of_cache
@@ -368,15 +370,23 @@ def sample_model(model, data, outprefix=None, **kwargs):
     
     return fit
 
+def get_flat_posterior(results):
+    la = results.posterior.data_vars
+    flat_posterior = collections.OrderedDict()
+    for k, v in la.items():
+        a = v.data
+        newshape = tuple([a.shape[0] * a.shape[1]] + list(a.shape)[2:])
+        flat_posterior[k] = v.data.reshape(newshape)
+    return flat_posterior
 
-def plot_corner(samples, outprefix=None, **kwargs):
+def plot_corner(results, outprefix=None, **kwargs):
     """
     Store a simple corner plot in outprefix_corner.pdf, based on samples
     extracted from fit.
 
     Additional kwargs are passed to MCSamples.
     """
-    la = samples.posterior.data_vars
+    la = get_flat_posterior(results)
     samples = []
     paramnames = []
     badlist = ['lp__']
@@ -384,20 +394,20 @@ def plot_corner(samples, outprefix=None, **kwargs):
 
     for k in sorted(la.keys()):
         print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
-        if la[k].ndim == 2 and k not in badlist:
-            samples.append(la[k].data.flatten())
+        if k not in badlist and la[k].ndim == 2:
+            samples.append(la[k])
             paramnames.append(k)
 
     if len(samples) == 0:
-        arrays = [k for k in sorted(la.keys()) if la[k].ndim == 3 and la[k].shape[2] <= 20 and k not in badlist]
+        arrays = [k for k in la.keys() if la[k].ndim == 3 and la[k].shape[2] <= 20 and k not in badlist]
         if len(arrays) != 1:
             warnings.warn("no scalar variables found")
             return
 
         k = arrays[0]
         # flatten across chains and column for each variable
-        samples = numpy.rollaxis(la[k].data, 2).reshape((la[k].shape[2], -1))
-        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[2])]
+        samples = la[k]
+        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[1])]
 
     samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt

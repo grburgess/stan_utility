@@ -47,7 +47,7 @@ def test_compile_string():
         )
         if os.path.exists("mytest_fitfit.hdf5"):
             os.unlink("mytest_fitfit.hdf5")
-        samples = stan_utility.sample_model(model, data, outprefix="mytest_fit", chains=1)
+        samples = stan_utility.sample_model(model, data, outprefix="mytest_fit", chains=2, iter=346)
         assert os.path.exists("mytest_fitfit.hdf5")
         os.unlink("mytest_fitfit.hdf5")
 
@@ -56,6 +56,12 @@ def test_compile_string():
         stan_utility.plot_corner(samples, outprefix="mytest_fit")
         assert os.path.exists("mytest_fit_corner.pdf")
         os.unlink("mytest_fit_corner.pdf")
+        
+        flat_samples = stan_utility.get_flat_posterior(samples)
+        assert set(flat_samples.keys()) == {"x", "y"}, flat_samples.keys()
+        assert flat_samples['x'].shape == (346,), flat_samples['x'].shape
+        assert flat_samples['y'].shape == (346, 10), flat_samples['y'].shape
+
 
 
 if __name__ == '__main__':
