@@ -406,8 +406,8 @@ def plot_corner(results, outprefix=None, **kwargs):
 
         k = arrays[0]
         # flatten across chains and column for each variable
-        samples = numpy.rollaxis(la[k], 2).reshape((la[k].shape[2], -1))
-        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[2])]
+        samples = la[k]
+        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[1])]
 
     samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt
