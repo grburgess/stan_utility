@@ -33,6 +33,7 @@ Usage for experimenting in a notebook:
 
 	model = stan_utility.compile_model_code("""
 	data {
+	   // maybe later
 	}
 	parameters {
 		real<lower=0,upper=1> x;
@@ -48,3 +49,8 @@ Usage for experimenting in a notebook:
 	print(results["parameter"].std())
 	
 	stan_utility.plot_corner(samples)
+
+Editing the comments, adding and removing lines will not require
+recompilation of the model.
+
+
