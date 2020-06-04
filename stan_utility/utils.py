@@ -375,9 +375,8 @@ def get_flat_posterior(results):
     flat_posterior = collections.OrderedDict()
     for k, v in la.items():
         a = v.data
-        b = numpy.rollaxis(a, -1)
-        newshape = tuple([b.shape[0] * b.shape[1]] + list(b.shape)[2:])
-        flat_posterior[k] = v.data.transpose().reshape(newshape)
+        newshape = tuple([a.shape[0] * a.shape[1]] + list(a.shape)[2:])
+        flat_posterior[k] = v.data.reshape(newshape)
     return flat_posterior
 
 def plot_corner(results, outprefix=None, **kwargs):
