@@ -107,7 +107,7 @@ setup(
     test_suite='tests',
     tests_require=TEST_REQUIRED,
     include_package_data=True,
-    license="BSD",
+    license="GPL",
     cmdclass={"upload": UploadCommand},
 )
 
