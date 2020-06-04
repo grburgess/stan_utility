@@ -1,7 +1,6 @@
 import stan_utility
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 
 def test_compile_file():
     model = stan_utility.compile_model(os.path.join(os.path.dirname(__file__), 'test.stan'))
