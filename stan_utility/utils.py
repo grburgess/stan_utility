@@ -7,7 +7,7 @@ import re
 import warnings
 import h5py
 
-from stan_utility.file_utils import get_path_of_cache
+from stan_utility.cache import get_path as get_path_of_cache
 
 
 def check_div(fit, quiet=False):
@@ -327,8 +327,8 @@ def fast_extract(fit, spec):
     return organised_output
 
 
-import stan_utility.file_utils
-@stan_utility.file_utils.mem.cache(ignore=["outprefix", "refresh"])
+from stan_utility.cache import mem as cache_mem
+@cache_mem.cache(ignore=["outprefix", "refresh"])
 def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
     print()
     print("Data")
@@ -351,7 +351,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
     la = fit.extract()
     return la
 
-def sample_model(model, data, prefix='fitresult', **kwargs):
+def sample_model(model, data, outprefix=None, **kwargs):
     """
     Sample Stan model and write the parameters into a simple hdf5 file
 
@@ -364,9 +364,8 @@ def sample_model(model, data, prefix='fitresult', **kwargs):
     """
     samples = _sample_model(model, data, **kwargs)
 
-    file_name = prefix + 'fit.hdf5'
-
-    if file_name is not None:
+    if outprefix is not None:
+        file_name = outprefix + 'fit.hdf5'
         with h5py.File(file_name, "w") as f:
             params_grp = f.create_group("parameters")
             for key, data in samples.items():
@@ -375,7 +374,7 @@ def sample_model(model, data, prefix='fitresult', **kwargs):
     return samples
 
 
-def plot_corner(samples, outprefix='fitresult', **kwargs):
+def plot_corner(samples, outprefix=None, **kwargs):
     """
     Store a simple corner plot in outprefix_corner.pdf, based on samples
     extracted from fit.
@@ -401,6 +400,7 @@ def plot_corner(samples, outprefix='fitresult', **kwargs):
     g = plots.get_subplot_plotter(width_inch=8)
     g.settings.num_plot_contours = 3
     g.triangle_plot([samples_g], filled=False, contour_colors=plt.cm.Set1.colors);
-    plt.savefig(outprefix + '_corner.pdf', bbox_inches='tight')
-    plt.close()
+    if outprefix is not None:
+        plt.savefig(outprefix + '_corner.pdf', bbox_inches='tight')
+        plt.close()
 

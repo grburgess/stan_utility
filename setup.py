@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from setuptools import setup, find_packages, Command
 import os
 import io
@@ -15,7 +17,8 @@ REQUIRES_PYTHON = ">=2.7.0"
 VERSION = None
 
 REQUIRED = ["numpy", "scipy", "h5py", "pystan", "pandas"]
-
+TEST_REQUIRED = ["pytest>=3", ]
+SETUP_REQUIRED = ["pytest-runner", ]
 # What packages are optional?
 EXTRAS = {
     # 'fancy feature': ['django'],
@@ -100,6 +103,9 @@ setup(
     packages=find_packages(exclude=("tests",)),
     install_requires=REQUIRED,
     extras_require=EXTRAS,
+    setup_requires=SETUP_REQUIRED,
+    test_suite='tests',
+    tests_require=TEST_REQUIRED,
     include_package_data=True,
     license="BSD",
     cmdclass={"upload": UploadCommand},
