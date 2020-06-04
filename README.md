@@ -7,12 +7,12 @@ Utilities for PyStan for
 * making corner plots of scalar parameters
 
 [![Build Status](https://travis-ci.org/JohannesBuchner/stan_utility.svg?branch=master)](https://travis-ci.org/JohannesBuchner/stan_utility)
-[![PyPI version fury.io](https://badge.fury.io/py/stan_utility.svg)](https://pypi.python.org/pypi/stan_utility/)
-[![PyPI license](https://img.shields.io/pypi/l/stan_utility.svg)](https://pypi.python.org/pypi/stan_utility/)
+[![PyPI version fury.io](https://badge.fury.io/py/stan-utility.svg)](https://pypi.python.org/pypi/stan_utility/)
+[![PyPI license](https://img.shields.io/pypi/l/stan-utility.svg)](https://pypi.python.org/pypi/stan_utility/)
 
 ## Install 
 
-	$ pip install stan_utility
+	$ pip install stan-utility
 
 ## Usage
 
