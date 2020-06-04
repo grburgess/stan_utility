@@ -15,9 +15,9 @@ def test_compile_file():
     assert "joblib" in files
     assert any(f for f in files if f.startswith("cached-") and f.endswith('.pkl')), files
     assert len(files) > 1, files
-    
+
     stan_utility.cache.clear()
-    
+
     files = os.listdir(stan_utility.cache.get_path())
     assert files == ["joblib"], files
 
