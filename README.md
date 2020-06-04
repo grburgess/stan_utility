@@ -1,11 +1,11 @@
 # stan_utility
 Utilities for PyStan for 
 
-*  caching model compilation in a smart way
-*  caching sampling results in a smart way
-*  checking Stan warnings
-*  storing sampling results as space-efficient HDF5 files
-*  making corner plots of scalar parameters
+* caching model compilation in a smart way
+* caching sampling results in a smart way
+* checking Stan warnings
+* storing sampling results as space-efficient HDF5 files
+* making corner plots of scalar parameters
 
 [![Build Status](https://travis-ci.org/JohannesBuchner/stan_utility.svg?branch=master)](https://travis-ci.org/JohannesBuchner/stan_utility)
 [![PyPI version fury.io](https://badge.fury.io/py/stan-utility.svg)](https://pypi.python.org/pypi/stan_utility/)
@@ -30,8 +30,8 @@ Utilities for PyStan for
 
 On the second run of this code,
 
-*  compile_model will retrieve the compiled model from cache
-*  sample_model will retrieve the results from cache. (change the seed or parameters if you want a fresh run).
+* compile_model will retrieve the compiled model from cache
+* sample_model will retrieve the results from cache. (change the seed or parameters if you want a fresh run).
 
 Usage for experimenting in a notebook:
 
@@ -63,9 +63,9 @@ recompilation of the model.
 
 Derived originally from Stan_utility by Michael Betancourt and Sean Talts. 
 
-*  @grburgess
-*  @cescalara
-*  @JohannesBuchner
+* @grburgess
+* @cescalara
+* @JohannesBuchner
 
 Contributions are welcome.
 

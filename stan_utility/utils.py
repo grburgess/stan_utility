@@ -5,7 +5,7 @@ import os
 import hashlib
 import re
 import warnings
-import h5py
+import arviz
 
 from stan_utility.cache import get_path as get_path_of_cache
 
@@ -328,8 +328,8 @@ def fast_extract(fit, spec):
 
 
 from stan_utility.cache import mem as cache_mem
-@cache_mem.cache(ignore=["outprefix", "refresh"])
-def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
+@cache_mem.cache(ignore=["refresh"])
+def _sample_model(model, data, refresh=100, **kwargs):
     print()
     print("Data")
     print("----")
@@ -338,7 +338,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
             print('  %-10s: %s' % (k, v))
         else:
             print('  %-10s: shape %s [%s ... %s]' % (k, numpy.shape(v), numpy.min(v), numpy.max(v)))
-
+    
     print()
     print("sampling from model ...")
     fit = model.sampling(data=data, refresh=refresh, **kwargs)
@@ -348,8 +348,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
     check_all_diagnostics(fit,
         max_treedepth=kwargs.get('control', {}).get('max_treedepth', 10),
         quiet=False)
-    la = fit.extract()
-    return la
+    return arviz.convert_to_inference_data(fit)
 
 def sample_model(model, data, outprefix=None, **kwargs):
     """
@@ -362,16 +361,12 @@ def sample_model(model, data, outprefix=None, **kwargs):
     All other arguments are passed to model.sampling().
     Result is cached.
     """
-    samples = _sample_model(model, data, **kwargs)
+    fit = _sample_model(model, data, **kwargs)
 
     if outprefix is not None:
-        file_name = outprefix + 'fit.hdf5'
-        with h5py.File(file_name, "w") as f:
-            params_grp = f.create_group("parameters")
-            for key, data in samples.items():
-                params_grp.create_dataset(key, data=data, compression="gzip", shuffle=True)
+        arviz.to_netcdf(fit, outprefix + 'fit.hdf5')
     
-    return samples
+    return fit
 
 
 def plot_corner(samples, outprefix=None, **kwargs):
@@ -381,7 +376,7 @@ def plot_corner(samples, outprefix=None, **kwargs):
 
     Additional kwargs are passed to MCSamples.
     """
-    la = samples
+    la = samples.posterior.data_vars
     samples = []
     paramnames = []
     badlist = ['lp__']
@@ -389,8 +384,8 @@ def plot_corner(samples, outprefix=None, **kwargs):
 
     for k in sorted(la.keys()):
         print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
-        if len(numpy.shape(la[k])) == 1 and k not in badlist:
-            samples.append(la[k])
+        if len(numpy.shape(la[k])) == 2 and k not in badlist:
+            samples.append(la[k].data.flatten())
             paramnames.append(k)
     samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt
