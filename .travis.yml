@@ -3,9 +3,9 @@ language: python
 matrix:
   include:
     - python: 3.5
-      env: DEPS="pandas==0.24 matplotlib==1.4.3 cython getdist"
+      env: DEPS="pandas==0.24 matplotlib==1.4.3 cython getdist==0.3.3 coveralls"
     - python: 3.8
-      env: DEPS="coveralls matplotlib pandas cython getdist"
+      env: DEPS="matplotlib pandas cython getdist coveralls"
 install:
   - pip install $DEPS
   - python setup.py install
