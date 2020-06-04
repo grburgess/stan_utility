@@ -16,7 +16,7 @@ AUTHOR = "J. Michael Burgess"
 REQUIRES_PYTHON = ">=2.7.0"
 VERSION = None
 
-REQUIRED = ["numpy", "scipy", "h5py", "pystan<3", "joblib", "pandas"]
+REQUIRED = ["numpy", "scipy", "pystan<3", "joblib", "pandas", "arviz"]
 TEST_REQUIRED = ["pytest>=3", "matplotlib", "getdist"]
 SETUP_REQUIRED = ["pytest-runner", ]
 # What packages are optional?
