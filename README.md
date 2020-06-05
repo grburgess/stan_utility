@@ -1,11 +1,10 @@
 # stan_utility
 Utilities for PyStan for 
 
-*  caching model compilation in a smart way
-*  caching sampling results in a smart way
-*  checking Stan warnings
-*  storing sampling results as space-efficient HDF5 files
-*  making corner plots of scalar parameters
+* caching model compilation in a smart way
+* caching sampling results in a smart way
+* checking Stan warnings
+* making corner plots of scalar parameters
 
 [![Build Status](https://travis-ci.org/JohannesBuchner/stan_utility.svg?branch=master)](https://travis-ci.org/JohannesBuchner/stan_utility)
 [![PyPI version fury.io](https://badge.fury.io/py/stan-utility.svg)](https://pypi.python.org/pypi/stan_utility/)
@@ -23,17 +22,22 @@ Utilities for PyStan for
 	data = dict(mean=1)
 	
 	results = stan_utility.sample_model(model, data, chains=2, iter=1000)
-	print(results["parameter"].std())
+	print(results.posterior)  ## a arviz.InferenceData object
 	
+	# create mytest_fit_corner.pdf:
 	stan_utility.plot_corner(samples, outprefix="mytest_fit")
-	# mytest_fit_corner.pdf will be created
 
 On the second run of this code,
 
-*  compile_model will retrieve the compiled model from cache
-*  sample_model will retrieve the results from cache. (change the seed or parameters if you want a fresh run).
+* compile_model will retrieve the compiled model from cache
+* sample_model will retrieve the results from cache. (change the seed or parameters if you want a fresh run).
 
-Usage for experimenting in a notebook:
+## Jupyter notebook features
+
+See demos:
+
+* https://github.com/JohannesBuchner/stan_utility/blob/master/examples/rosen2d.ipynb
+* https://github.com/JohannesBuchner/stan_utility/blob/master/examples/rosenNd.ipynb
 
 	import stan_utility
 
@@ -52,21 +56,20 @@ Usage for experimenting in a notebook:
 	data = dict(something=1)
 
 	results = stan_utility.sample_model(model, data)
-	print(results["parameter"].std())
+	print(results.posterior)
 	
 	stan_utility.plot_corner(samples)
 
 Editing the comments, adding and removing lines will not require
-recompilation of the model.
+recompilation of the model, because empty lines and comments are stripped out.
 
 ## Contributors
 
 Derived originally from Stan_utility by Michael Betancourt and Sean Talts. 
 
-*  @grburgess
-*  @cescalara
-*  @JohannesBuchner
+* @grburgess
+* @cescalara
+* @JohannesBuchner
 
 Contributions are welcome.
 
-stan_utility can be used together with arviz and other stan tools.

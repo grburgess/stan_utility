@@ -1,11 +1,13 @@
-import pystan
 import pickle
 import numpy
 import os
 import hashlib
 import re
 import warnings
-import h5py
+import collections
+
+import pystan
+import arviz
 
 from stan_utility.cache import get_path as get_path_of_cache
 
@@ -328,8 +330,8 @@ def fast_extract(fit, spec):
 
 
 from stan_utility.cache import mem as cache_mem
-@cache_mem.cache(ignore=["outprefix", "refresh"])
-def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
+@cache_mem.cache(ignore=["refresh"])
+def _sample_model(model, data, refresh=100, **kwargs):
     print()
     print("Data")
     print("----")
@@ -338,7 +340,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
             print('  %-10s: %s' % (k, v))
         else:
             print('  %-10s: shape %s [%s ... %s]' % (k, numpy.shape(v), numpy.min(v), numpy.max(v)))
-
+    
     print()
     print("sampling from model ...")
     fit = model.sampling(data=data, refresh=refresh, **kwargs)
@@ -348,8 +350,7 @@ def _sample_model(model, data, outprefix='fitresult', refresh=100, **kwargs):
     check_all_diagnostics(fit,
         max_treedepth=kwargs.get('control', {}).get('max_treedepth', 10),
         quiet=False)
-    la = fit.extract()
-    return la
+    return arviz.convert_to_inference_data(fit)
 
 def sample_model(model, data, outprefix=None, **kwargs):
     """
@@ -362,26 +363,30 @@ def sample_model(model, data, outprefix=None, **kwargs):
     All other arguments are passed to model.sampling().
     Result is cached.
     """
-    samples = _sample_model(model, data, **kwargs)
+    fit = _sample_model(model, data, **kwargs)
 
     if outprefix is not None:
-        file_name = outprefix + 'fit.hdf5'
-        with h5py.File(file_name, "w") as f:
-            params_grp = f.create_group("parameters")
-            for key, data in samples.items():
-                params_grp.create_dataset(key, data=data, compression="gzip", shuffle=True)
+        arviz.to_netcdf(fit, outprefix + 'fit.hdf5')
     
-    return samples
+    return fit
 
+def get_flat_posterior(results):
+    la = results.posterior.data_vars
+    flat_posterior = collections.OrderedDict()
+    for k, v in la.items():
+        a = v.data
+        newshape = tuple([a.shape[0] * a.shape[1]] + list(a.shape)[2:])
+        flat_posterior[k] = v.data.reshape(newshape)
+    return flat_posterior
 
-def plot_corner(samples, outprefix=None, **kwargs):
+def plot_corner(results, outprefix=None, **kwargs):
     """
     Store a simple corner plot in outprefix_corner.pdf, based on samples
     extracted from fit.
 
     Additional kwargs are passed to MCSamples.
     """
-    la = samples
+    la = get_flat_posterior(results)
     samples = []
     paramnames = []
     badlist = ['lp__']
@@ -389,15 +394,27 @@ def plot_corner(samples, outprefix=None, **kwargs):
 
     for k in sorted(la.keys()):
         print('%20s: %.4f +- %.4f' % (k, la[k].mean(), la[k].std()))
-        if len(numpy.shape(la[k])) == 1 and k not in badlist:
+        if k not in badlist and la[k].ndim == 2:
             samples.append(la[k])
             paramnames.append(k)
+
+    if len(samples) == 0:
+        arrays = [k for k in la.keys() if la[k].ndim == 3 and la[k].shape[2] <= 20 and k not in badlist]
+        if len(arrays) != 1:
+            warnings.warn("no scalar variables found")
+            return
+
+        k = arrays[0]
+        # flatten across chains and column for each variable
+        samples = la[k]
+        paramnames = ['%s[%d]' % (k, i + 1) for i in range(la[k].shape[1])]
+
     samples = numpy.transpose(samples)
     import matplotlib.pyplot as plt
     from getdist import MCSamples, plots
     settings = kwargs.pop('settings', dict(smooth_scale_2D=3.0))
     samples_g = MCSamples(samples=samples, names=paramnames, settings=settings, **kwargs)
-    g = plots.get_subplot_plotter(width_inch=8)
+    g = plots.get_subplot_plotter()
     g.settings.num_plot_contours = 3
     g.triangle_plot([samples_g], filled=False, contour_colors=plt.cm.Set1.colors);
     if outprefix is not None:
